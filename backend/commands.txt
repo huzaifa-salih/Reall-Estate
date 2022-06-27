@@ -1,0 +1,10 @@
+./manage.py makemigrations
+./manage.py migrate users --database=users
+
+DATABASE
+    \l
+    \c backend_user
+    \dt
+
+SELECT * FROM users_accounts;
+\q
