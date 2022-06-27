@@ -11,10 +11,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG')
+DEBUG = config("DEBUG")
 
 ALLOWED_HOSTS = []
 
@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "users",
-    "listings",
+    "listing",
 ]
 
 MIDDLEWARE = [
@@ -72,18 +72,18 @@ DATABASES = {
     "default": {},
     "users": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config('USER_NAME'),
-        "USER": config('USER'),
-        "PASSWORD": config('USER_PASSWORD'),
+        "NAME": config("USER_NAME"),
+        "USER": config("USER"),
+        "PASSWORD": config("USER_PASSWORD"),
     },
     "listings": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config('LISTINGS_NAME'),
-        "USER": config('LISTINGS'),
-        "PASSWORD": config('LISTINGS_PASSWORD'),
+        "NAME": config("LISTINGS_NAME"),
+        "USER": config("LISTINGS"),
+        "PASSWORD": config("LISTINGS_PASSWORD"),
     },
 }
-DATABASE_ROUTERS = ["users.router.AuthRouter"]
+DATABASE_ROUTERS = ["users.router.AuthRouter", "listing.router.ListingRouter"]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -138,6 +138,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
