@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework import permissions
 from .models import Listing
 from .serializer import ListingSerializer
+from django.contrib.postgres.search import SearchVector, SearchQuery
 
 
 class ManageListingview(APIView):
@@ -141,25 +142,9 @@ class ManageListingview(APIView):
                 return Response({"error": "Listing with this slug already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
             Listing.objects.create(
-                realtor=user.email,
-                title=title,
-                slug=slug,
-                address=address,
-                city=city,
-                state=state,
-                zipcode=zipcode,
-                description=description,
-                price=price,
-                bedrooms=bedrooms,
-                bathrooms=bathrooms,
-                sale_type=sale_type,
-                home_type=home_type,
-                main_photo=main_photo,
-                photo_1=photo_1,
-                photo_2=photo_2,
-                photo_3=photo_3,
-                is_published=is_published,
-            )
+                realtor=user.email, title=title, slug=slug, address=address, city=city, state=state, zipcode=zipcode,
+                description=description, price=price, bedrooms=bedrooms, bathrooms=bathrooms, sale_type=sale_type,
+                home_type=home_type, main_photo=main_photo, photo_1=photo_1, photo_2=photo_2, photo_3=photo_3, is_published=is_published)
             return Response({"success": "Listing created successfully"}, status=status.HTTP_201_CREATED)
         except:
             return Response({"error": "Something went wrong when creating listing"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -289,3 +274,66 @@ class ListingView(APIView):
 
         except:
             return Response({"error": "Somthing went wrong when Retrieving listing"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SearchListingView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, format=None):
+        try:
+            city = request.query_params.get('city')
+            state = request.query_params.get('state')
+            max_price = request.query_params.get('max_price')
+            try:
+                max_price = int(max_price)
+            except:
+                return Response({'error': 'Max Price must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            bedrooms = request.query_params.get('bedrooms')
+            try:
+                bedrooms = int(bedrooms)
+            except:
+                return Response({'error': 'bedrooms must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            bathroom = request.query_params.get('bathroom')
+            try:
+                bathroom = float(bathroom)
+            except:
+                return Response({'error': 'bathrooms must be a floting point value'}, status=status.HTTP_400_BAD_REQUEST)
+            if bathroom <=0 or bathroom >=10:
+                bathroom = 1.0
+            bathroom = round(bathroom, 1)
+
+            sale_type = request.query_params.get('sale_type')
+            if sale_type == "FOR_SALE":
+                sale_type = "For Sale"
+            else:
+                sale_type = "For Rant"
+
+            home_type = request.query_params.get('home_type')
+            if home_type == "HOUSE":
+                home_type = "House"
+            elif home_type == "CONDO":
+                home_type = "Condo"
+            else:
+                home_type = "TownHouse"
+            
+            serach = request.query_params.get('search')
+            if not search:
+                return Response({'error': 'Must pass search criteria'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            vector = SearchVector('title', 'description')
+            query = searchQuery(search)
+            if not Listing.objects.annotate(search=vector).filter(
+                search=query, city=city, state=state, price__lte=max_price, bedrooms__gte=bedrooms,
+                bathroom__gte=bathroom, sale_type=sale_type, home_type=home_type, is_published=True).exists():
+                return Response({'error': 'Not listing found with this criteria.'}, status=status.HTTP_404_NOT_FOUND)
+            
+            listings = Listing.objects.annotate(search=vector).filter(
+                search=query, city=city, state=state, price__lte=max_price, bedrooms__gte=bedrooms,
+                bathroom__gte=bathroom, sale_type=sale_type, home_type=home_type, is_published=True)
+            listings = ListingSerializer(listings, many=True)
+            return Response({'listings': listings.data}, status=status.HTTP_200_OK)
+
+        except:
+            return Response({"error": "Somthing went wrong when Searching listing"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
